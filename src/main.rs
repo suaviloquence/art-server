@@ -1,6 +1,6 @@
 use std::{borrow::Cow, convert::Infallible};
 
-use warp::{hyper::Response, Filter};
+use warp::Filter;
 
 mod db;
 
@@ -145,7 +145,58 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 			))
 		});
 
-	let server = warp::serve(read_routes.or(create_quest));
+	let update_quest = warp::path!("quest")
+		.and(warp::put())
+		.and(warp::body::json())
+		.and(with_data!(pool))
+		.and_then(|q: Quest, pool| async move {
+			let rows = sqlx::query!(
+				"UPDATE quests SET (artist, poem, next) = ($1, $2, $3) WHERE id = $4",
+				q.artist,
+				q.poem,
+				q.next,
+				q.id
+			)
+			.execute(&pool)
+			.await
+			.expect("db err")
+			.rows_affected();
+
+			if rows > 0 {
+				Ok::<_, Infallible>(warp::reply::json(
+					&serde_json::to_value(&Message {
+						success: true,
+						message: Cow::Borrowed("updated successfully"),
+					})
+					.expect("json err"),
+				))
+			} else {
+				Ok(warp::reply::json(
+					&serde_json::to_value(&Message {
+						success: false,
+						message: Cow::Borrowed("no quest with that id found"),
+					})
+					.expect("json err"),
+				))
+			}
+		});
+
+	let static_routes = warp::path!("create")
+		.map(|| {
+			warp::reply::html(
+				std::fs::read_to_string("app/upload.html").expect("error loading file"),
+			)
+		})
+		.or(warp::path!("update").map(|| {
+			warp::reply::html(std::fs::read_to_string("app/edit.html").expect("error loading file"))
+		}));
+
+	let server = warp::serve(
+		read_routes
+			.or(create_quest)
+			.or(update_quest)
+			.or(static_routes),
+	);
 
 	server.run(([0, 0, 0, 0], 4444)).await;
 

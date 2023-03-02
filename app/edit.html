@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>Edit quest</title>
+	<meta charset="utf-8" />
+
+	<script>
+		const ID = document.getElementById.bind(document);
+		document.addEventListener("DOMContentLoaded", () => {
+			/**
+			 * @type {HTMLFormElement}
+			**/
+			const load = ID("load");
+			/**
+			 * @type {HTMLInputElement}
+			**/
+			const load_id = ID("load-id");
+
+			/**
+			 * @type {HTMLFormElement}
+			**/
+			const form = ID("form");
+			/**
+			 * @type {HTMLInputElement}
+			**/
+			const id = ID("id");
+			/**
+			 * @type {HTMLInputElement}
+			**/
+			const artist = ID("artist");
+			/**
+			 * @type {HTMLTextAreaElement}
+			**/
+			const poem = ID("poem");
+			/**
+			 * @type {HTMLInputElement}
+			**/
+			const next = ID("next");
+
+			load.addEventListener("submit", async function (evt) {
+				this.disabled = true;
+				evt.preventDefault();
+				const res = await fetch(`/quest?quest=${encodeURIComponent(load_id.value)}`);
+				const json = await res.json();
+				load.classList.add("hide");
+				form.classList.remove("hide");
+				id.value = json.id;
+				artist.value = json.artist;
+				poem.value = json.poem;
+				next.value = json.next ?? "";
+
+
+				this.disabled = false;
+			});
+
+			form.addEventListener("submit", async function (evt) {
+				this.disabled = true;
+				evt.preventDefault();
+
+				const object = {
+					id: id.value,
+					artist: artist.value,
+					poem: poem.value,
+					next: next.value || null,
+				};
+
+				console.dir(JSON.stringify(object));
+
+				const res = await fetch("/quest", {
+					method: "PUT",
+					headers: {
+						"Content-Type": "application/json"
+					},
+					body: JSON.stringify(object)
+				});
+
+
+				console.dir(await res.json());
+				this.disabled = false;
+			});
+		});
+	</script>
+	<style>
+		.hide {
+			display: none;
+		}
+	</style>
+</head>
+
+<body>
+	<form id="load">
+		<div>
+			<label for="load-id">Quest ID: </label>
+			<input type="text" id="load-id" required />
+		</div>
+		<div>
+			<input type="submit" value="Load" />
+		</div>
+	</form>
+	<form id="form" class="hide">
+		<div>
+			<label for="id">Quest ID: </label>
+			<input type="text" id="id" required />
+		</div>
+		<div>
+			<label for="artist">Artist: </label>
+			<input type="text" id="artist" required />
+		</div>
+		<div>
+			<label for="poem">Poem: </label>
+			<textarea id="poem" required></textarea>
+		</div>
+		<div>
+			<label for="next">Next quest (optional): </label>
+			<input type="text" id="next" />
+		</div>
+		<div>
+			<input type="submit" />
+		</div>
+	</form>
+</body>
+
+</html>

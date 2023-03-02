@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>Create quest</title>
+	<meta charset="utf-8" />
+
+	<script>
+		const ID = document.getElementById.bind(document);
+		document.addEventListener("DOMContentLoaded", () => {
+			/**
+			 * @type {HTMLFormElement}
+			**/
+			const form = ID("form");
+			/**
+			 * @type {HTMLInputElement}
+			**/
+			const id = ID("id");
+			/**
+			 * @type {HTMLInputElement}
+			**/
+			const artist = ID("artist");
+			/**
+			 * @type {HTMLTextAreaElement}
+			**/
+			const poem = ID("poem");
+			/**
+			 * @type {HTMLInputElement}
+			**/
+			const next = ID("next");
+			/**
+			 * @type {HTMLInputElement}
+			**/
+			const images = ID("images");
+
+			form.addEventListener("submit", async function (evt) {
+				this.disabled = true;
+				evt.preventDefault();
+
+				const object = {
+					quest: {
+						id: id.value,
+						artist: artist.value,
+						poem: poem.value,
+						next: next.value ?? null,
+					},
+					images: await Promise.all(Array.from(images.files, async (file) => {
+						const buffer = await file.arrayBuffer();
+						return Array.from(new Uint8Array(buffer))
+					}))
+				};
+
+				console.dir(JSON.stringify(object));
+
+				const res = await fetch("/quest", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json"
+					},
+					body: JSON.stringify(object)
+				});
+
+
+				console.dir(await res.json());
+				this.disabled = false;
+			});
+		});
+	</script>
+</head>
+
+<body>
+	<form id="form">
+		<div>
+			<label for="id">Quest ID: </label>
+			<input type="text" id="id" required />
+		</div>
+		<div>
+			<label for="artist">Artist: </label>
+			<input type="text" id="artist" required />
+		</div>
+		<div>
+			<label for="poem">Poem: </label>
+			<textarea id="poem" required></textarea>
+		</div>
+		<div>
+			<label for="next">Next quest (optional): </label>
+			<input type="text" id="next" />
+		</div>
+		<div>
+			<label for="images">Images: </label>
+			<input type="file" id="images" required multiple />
+		</div>
+		<div>
+			<input type="submit" />
+		</div>
+	</form>
+</body>
+
+</html>
